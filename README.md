@@ -13,7 +13,7 @@
 
 
       
-        ESP-32-devkit
-        DHT22
-        Ultrasonic sensorrelay 3-4 ตัวตามที่ต้องการนำมาใช้
-        RTC โมดูลจับเวลา
+        1.ESP-32-devkit
+        2.DHT22
+        3.Ultrasonic sensorrelay 3-4 ตัวตามที่ต้องการนำมาใช้
+        4.RTC โมดูลจับเวลา
