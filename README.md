@@ -5,14 +5,13 @@
 
 <img src="img/1.png">
 
-        # ไลบรารี้ที่ใช้ในบอร์ดนี้:
+## ไลบรารี้ที่ใช้ในบอร์ดนี้:
         DHT sensor library
         RTClib
         Adafruit SSD1306
         AsyncDelay
 
-
-      
+## อุปกรณ์ที่นำมาใช้
         1.ESP-32-devkit
         2.DHT22
         3.Ultrasonic sensorrelay 3-4 ตัวตามที่ต้องการนำมาใช้
