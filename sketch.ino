@@ -12,9 +12,7 @@
 #define ECHO_PIN  23 // ESP32 pin GPIO23 เชื่อมต่อเซนเซอร์ Ultrasonic Sensor's ECHO pin
 #define DISTANCE_THRESHOLD 50 // ระยะระวัง ซม.
 
-float duration_us, distance_cm;
-
-
+float duration_us, distance_cm; 
 
 #define I2C_SDA 19
 #define I2C_SCL 18
@@ -27,6 +25,7 @@ float duration_us, distance_cm;
 #define utcDST 0 * 1000         //(hr) รีเซ็ตวัน 
 #define timeUpdate 24 * 360000  //(hr) เวลาอัพเดท
 
+// มุมสำหรับ pin
 #define DHT_Pin 19
 #define conFan 32
 #define water 33
@@ -76,7 +75,6 @@ void setup() {
   display.dim(true);
   display.clearDisplay();
 
-
   refreshDelay.start(refreshSpeed, AsyncDelay::MILLIS);
   timeFetch.start(timeUpdate, AsyncDelay::MILLIS);
 
@@ -97,7 +95,8 @@ void loop() {
 
 }
 
-void scroll(String text, int X, int Y) {
+void scroll(String text, int X, int Y) { //   scroll("ข้อความ " , แกน X ,  แกน Y);
+
   int pos = (Yscrl + Y) % 64;
 
   if (pos < 8 || pos > 56) {
@@ -143,25 +142,25 @@ void automatic() {
 
 }
 
-void ultrasonic() {
+void ultrasonic() { // ultrasonic sensor ส่วนใหญ่มีระยะวัด 400 ซม หรือ 4 เมตร ควรคำนวณระยะทางให้ดีก่อนแก้โค้ด
   digitalWrite(TRIG_PIN, 1);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, 0);
-  // measure duration of pulse from ECHO pin
+  // ระยะข้อมูลจากคลื่นโซนิค
   duration_us = pulseIn(ECHO_PIN, 1);
-  // calculate the distance
+  // คำนวณผลระยะ
   distance_cm = 0.017 * duration_us;
 
 
 }
 
-void wf(){
+void wf(){ // คำสั่งตรวจสอบน้ำ
   if (distance_cm < DISTANCE_THRESHOLD) {
     digitalWrite(pump, 0); // turn on LED
     scroll("W:FULL " , 80, 48);
   }
   else {
     digitalWrite(pump, 1);  // turn off LED
-    scroll("W:LOW " , 80, 48);
+    scroll("W:NOT FULL " , 80, 48);
   }
 }
