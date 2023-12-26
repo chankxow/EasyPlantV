@@ -4,6 +4,12 @@
 #include <DHT.h>
 #include <RTClib.h>
 #include <AsyncDelay.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+const char* ssid = "Wokwi-GUEST";
+const char* password = "";
+const char* token = "qdZuyRItKe5oal0V2pFNQSVUVXnUWQoRiex09lpc4Zr";
 
 #define ver 0.01
 
@@ -12,7 +18,9 @@
 #define ECHO_PIN  23 // ESP32 pin GPIO23 เชื่อมต่อเซนเซอร์ Ultrasonic Sensor's ECHO pin
 #define DISTANCE_THRESHOLD 50 // ระยะระวัง ซม.
 
-float duration_us, distance_cm; 
+float duration_us, distance_cm;
+
+
 
 #define I2C_SDA 19
 #define I2C_SCL 18
@@ -25,13 +33,13 @@ float duration_us, distance_cm;
 #define utcDST 0 * 1000         //(hr) รีเซ็ตวัน 
 #define timeUpdate 24 * 360000  //(hr) เวลาอัพเดท
 
-// มุมสำหรับ pin
 #define DHT_Pin 19
 #define conFan 32
 #define water 33
 #define pump  35
 #define peltierHot 6
 #define peltireCold 7
+
 
 RTC_DS1307 rtc;
 
@@ -63,6 +71,14 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT); // set ESP32 pin to output mode
   pinMode(ECHO_PIN, INPUT);  // set ESP32 pin to input mode
 
+  WiFi.begin("Wokwi-GUEST", "", 6);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Connecting to WiFi...");
+  }
+
+  Serial.println("Connected to WiFi");
+  Serial.println(" READY ");
+
   I2C.begin(I2C_SDA, I2C_SCL, 400000);
   rtc.begin(&I2C);
   dht.begin();
@@ -74,6 +90,7 @@ void setup() {
   display.setCursor(0, 0);
   display.dim(true);
   display.clearDisplay();
+
 
   refreshDelay.start(refreshSpeed, AsyncDelay::MILLIS);
   timeFetch.start(timeUpdate, AsyncDelay::MILLIS);
@@ -87,17 +104,17 @@ void loop() {
 
     displayInfo();
 
-    Yscrl = (Yscrl + 1) % 64;
+    Yscrl = (Yscrl + 1) % 96;
     ultrasonic();
     automatic();
     refreshDelay.repeat();
-  }
 
+  }
+  lineNotify();
 }
 
-void scroll(String text, int X, int Y) { //   scroll("ข้อความ " , แกน X ,  แกน Y);
-
-  int pos = (Yscrl + Y) % 64;
+void scroll(String text, int X, int Y) {
+  int pos = (Yscrl + Y) % 96;
 
   if (pos < 8 || pos > 56) {
     display.setCursor(X, pos - 7);
@@ -115,14 +132,15 @@ void displayInfo() {
   char date[] = "MM-DD-YY";
 
   display.clearDisplay();
-  scroll("EasyPlant " + String(ver), 1, 0);
-  display.drawFastHLine(0, (Yscrl) % 64 + 1, 128, WHITE);
+  scroll("PlantEasy " + String(ver), 1, 0);
+  display.drawFastHLine(0, (Yscrl) % 96 + 1, 128, WHITE);
   scroll(rtc.now().toString(time), 1, 16);
   scroll(rtc.now().toString(date), 78, 16);
   scroll("T:" + String(temp) + char(248) + 'C', 1, 32);
   scroll("Fan:" + String(String(double (conFanSpeed) / 255)), 80, 32);
   scroll("H:" + String(humid) + "%", 1, 48);
   wf();
+
   display.display();
 }
 
@@ -138,29 +156,48 @@ void automatic() {
     digitalWrite(water, 0);
   }
 
-  
+
 
 }
 
-void ultrasonic() { // ultrasonic sensor ส่วนใหญ่มีระยะวัด 400 ซม หรือ 4 เมตร ควรคำนวณระยะทางให้ดีก่อนแก้โค้ด
+void ultrasonic() {
   digitalWrite(TRIG_PIN, 1);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, 0);
-  // ระยะข้อมูลจากคลื่นโซนิค
+  // measure duration of pulse from ECHO pin
   duration_us = pulseIn(ECHO_PIN, 1);
-  // คำนวณผลระยะ
+  // calculate the distance
   distance_cm = 0.017 * duration_us;
 
 
 }
 
-void wf(){ // คำสั่งตรวจสอบน้ำ
+void wf() {
   if (distance_cm < DISTANCE_THRESHOLD) {
-    digitalWrite(pump, 0); // turn on LED
-    scroll("W:FULL " , 80, 48);
+    digitalWrite(pump, 0); //
+    scroll("W:FULL ", 80, 48);
   }
   else {
-    digitalWrite(pump, 1);  // turn off LED
-    scroll("W:NOT FULL " , 80, 48);
+    digitalWrite(pump, 1);  //
+    scroll("W:LOW ", 80, 48);
   }
 }
+
+void lineNotify() {
+
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+
+    http.begin("https://notify-api.line.me/api/notify");
+    http.addHeader("Authorization", "Bearer " + String(token));
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+
+    if (temp > 40) {
+      http.POST("message=ขณะนี้อุณหภูมิ: "+ String(temp) +" อุณหภูมิสูงเกิน 40 องศา🌡");
+    } else if (temp < 0) {
+      http.POST("message=ขณะนี้อุณหภูมิ: "+ String(temp) +" อุณหภูมิต่ำเกินไป🌡");
+    }
+  }
+
+} 
